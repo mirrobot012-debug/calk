@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Калькулятор</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+  .calc {
+    background: #1e1e2f;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    width: 300px;
+  }
+  .display {
+    background: #0f0f1a;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 14px;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .expression {
+    color: #888;
+    font-size: 16px;
+    text-align: right;
+    min-height: 20px;
+    font-family: 'Consolas', monospace;
+    word-break: break-all;
+  }
+  .result {
+    color: #fff;
+    font-size: 32px;
+    text-align: right;
+    font-family: 'Consolas', monospace;
+    word-break: break-all;
+    margin-top: 4px;
+  }
+  .result.error { color: #ff6b6b; font-size: 18px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  button {
+    padding: 16px 0;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+    background: #2d2d44;
+    transition: transform 0.08s, background 0.15s;
+  }
+  button:hover { background: #3a3a55; }
+  button:active { transform: scale(0.95); }
+  .op { background: #ff9f43; }
+  .op:hover { background: #e88a2e; }
+  .eq { background: #10ac84; }
+  .eq:hover { background: #0d9472; }
+  .clr { background: #ee5253; }
+  .clr:hover { background: #d44546; }
+  .zero { grid-column: span 2; }
+</style>
+</head>
+<body>
+  <div class="calc">
+    <div class="display">
+      <div class="expression" id="expression"></div>
+      <div class="result" id="result"></div>
+    </div>
+    <div class="grid">
+      <button onclick="input('7')">7</button>
+      <button onclick="input('8')">8</button>
+      <button onclick="input('9')">9</button>
+      <button class="op" onclick="setOp('/')">÷</button>
+
+      <button onclick="input('4')">4</button>
+      <button onclick="input('5')">5</button>
+      <button onclick="input('6')">6</button>
+      <button class="op" onclick="setOp('*')">×</button>
+
+      <button onclick="input('1')">1</button>
+      <button onclick="input('2')">2</button>
+      <button onclick="input('3')">3</button>
+      <button class="op" onclick="setOp('-')">−</button>
+
+      <button class="zero" onclick="input('0')">0</button>
+      <button onclick="input('.')">.</button>
+      <button class="op" onclick="setOp('+')">+</button>
+
+      <button class="clr" onclick="clearAll()">Очистить</button>
+      <button class="eq" style="grid-column: span 3;" onclick="equals()">=</button>
+    </div>
+  </div>
+
+<script>
+  const exprDisplay = document.getElementById('expression');
+  const resultDisplay = document.getElementById('result');
+  
+  let current = '';
+  let previous = null;
+  let operation = null;
+  let expression = '';
+  const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+
+  function render() {
+    resultDisplay.classList.remove('error');
+    exprDisplay.textContent = expression;
+    resultDisplay.textContent = current;
+  }
+
+  function showError(msg) {
+    resultDisplay.textContent = msg;
+    resultDisplay.classList.add('error');
+  }
+
+  function input(ch) {
+    if (resultDisplay.classList.contains('error')) {
+      current = '';
+      resultDisplay.classList.remove('error');
+    }
+    if (ch === '.' && current.includes('.')) return;
+    if (current === '0' && ch !== '.') current = '';
+    current += ch;
+    render();
+  }
+
+  function setOp(op) {
+    if (current === '' && previous === null) {
+      showError('Введите данные');
+      return;
+    }
+    if (current !== '') {
+      if (previous !== null && operation) {
+        compute();
+      } else {
+        previous = parseFloat(current);
+      }
+      expression = `${previous} ${symbols[op]}`;
+      current = '';
+    }
+    operation = op;
+  }
+
+  function compute() {
+    if (previous === null || operation === null || current === '') {
+      showError('Введите данные');
+      return false;
+    }
+    const b = parseFloat(current);
+    let result;
+    switch (operation) {
+      case '+': result = previous + b; break;
+      case '-': result = previous - b; break;
+      case '*': result = previous * b; break;
+      case '/':
+        if (b === 0) { showError('Введите данные'); return false; }
+        result = previous / b;
+        break;
+    }
+    result = Math.round(result * 1e10) / 1e10;
+    previous = result;
+    current = String(result);
+    return true;
+  }
+
+  function equals() {
+    if (current === '' && previous === null) {
+      showError('Введите данные');
+      return;
+    }
+    if (operation === null) return;
+    expression = `${previous} ${symbols[operation]} ${current} =`;
+    if (!compute()) return;
+    operation = null;
+    previous = null;
+    render();
+  }
+
+  function clearAll() {
+    current = '';
+    previous = null;
+    operation = null;
+    expression = '';
+    exprDisplay.textContent = '';
+    resultDisplay.textContent = '';
+    resultDisplay.classList.remove('error');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (/[0-9]/.test(e.key)) input(e.key);
+    else if (e.key === '.' || e.key === ',') input('.');
+    else if (['+','-','*','/'].includes(e.key)) setOp(e.key);
+    else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); equals(); }
+    else if (e.key === 'Escape') clearAll();
+  });
+</script>
+</body>
+</html>
